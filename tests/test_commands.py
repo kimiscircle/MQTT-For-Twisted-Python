@@ -6,8 +6,11 @@ from MQTT import  MQTTClient
 
 
 class MQTTClientFactory(ClientFactory):
+    username = "testuser"
+    password = "testpwd"
+
     def buildProtocol(self, addr):
-        return MQTTClient()
+        return MQTTClient(username=self.username, password=self.password)
 
 class CommandsTestCase(unittest.TestCase):
     def setUp(self):
@@ -74,8 +77,8 @@ class CommandsTestCase(unittest.TestCase):
 
         """ when default parameters """
 
-        variable_header = self._make_variable_header_connect("MQIsdp", 3, 0, 0, 0, 0, 0, 1, 3000)
-        payload = self._make_payload_connect(self.proto.clientId, None, None, None, None)
+        variable_header = self._make_variable_header_connect("MQIsdp", 3, 1, 1, 0, 0, 0, 1, 3000)
+        payload = self._make_payload_connect(self.proto.clientId, None, None, "testuser", "testpwd")
         fixed_header = self._make_fixed_header(0x01, 0, 0, 0, self.proto._encodeLength(len(variable_header) + len(payload)))
 
         st = StringIO()

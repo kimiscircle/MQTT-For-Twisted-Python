@@ -232,7 +232,7 @@ class MQTTProtocol(Protocol):
         pass
 
     def connectReceived(self, clientID, keepalive, willTopic,
-                        willMessage, willQoS, willRetain, cleanStart):
+                        willMessage, willQos, willRetain, cleanStart):
         pass
 
     def connackReceived(self, status):
@@ -276,8 +276,8 @@ class MQTTProtocol(Protocol):
         pass
 
     def connect(self, clientID, keepalive=3000, willTopic=None,
-                willMessage=None, willQoS=0, willRetain=False,
-                cleanStart=True):
+                willMessage=None, willQos=0, willRetain=0,
+                cleanStart=0, username=None, password=None):
         header = bytearray()
         varHeader = bytearray()
         payload = bytearray()
@@ -285,12 +285,25 @@ class MQTTProtocol(Protocol):
         varHeader.extend(self._encodeString("MQIsdp"))
         varHeader.append(3)
 
-        if willMessage is None or willTopic is None:
-            # Clean start, no will message
-            varHeader.append(0 << 2 | cleanStart << 1)
+        if username and password:
+            username_flag = 1
+            password_flag = 1
         else:
-            varHeader.append(willRetain << 5 | willQoS << 3
-                             | 1 << 2 | cleanStart << 1)
+            username_flag = 0
+            password_flag = 0
+
+        if willQos and willRetain and willTopic and willMessage:
+            will_flag = 1
+        else:
+            will_flag = 0
+
+        varHeader.append(username_flag << 7 |
+                         password_flag << 6 |
+                         willRetain << 5 |
+                         willQos << 4 |
+                         will_flag << 2 |
+                         cleanStart << 1 |
+                         0)
 
         varHeader.extend(self._encodeValue(keepalive/1000))
 
@@ -298,6 +311,10 @@ class MQTTProtocol(Protocol):
         if willMessage is not None and willTopic is not None:
             payload.extend(self._encodeString(willTopic))
             payload.extend(self._encodeString(willMessage))
+
+        if username_flag and password_flag:
+            payload.extend(self._encodeString(username))
+            payload.extend(self._encodeString(password))
 
         header.append(0x01 << 4)
         header.extend(self._encodeLength(len(varHeader) + len(payload)))
@@ -546,7 +563,17 @@ class MQTTProtocol(Protocol):
 class MQTTClient(MQTTProtocol):
 
     def __init__(self, clientId=None, keepalive=None, willQos=0,
-                 willTopic=None, willMessage=None, willRetain=False):
+                 willTopic=None, willMessage=None, willRetain=False,
+                 username=None, password=None):
+
+        if username and password:
+            self.username = username
+            self.password = password
+            self.username_flag = 1
+            self.password_flag = 1
+        else:
+            self.username_flag = 0
+            self.password_flag = 0
 
         if clientId is not None:
             self.clientId = clientId
@@ -564,8 +591,16 @@ class MQTTClient(MQTTProtocol):
         self.willRetain = willRetain
 
     def connectionMade(self):
-        self.connect(self.clientId, self.keepalive, self.willTopic,
-                     self.willMessage, self.willQos, self.willRetain, True)
+        self.connect(clientID=self.clientId,
+                     keepalive=self.keepalive,
+                     willTopic=self.willTopic,
+                     willMessage=self.willMessage,
+                     willQos=self.willQos,
+                     willRetain=self.willRetain,
+                     cleanStart=True,
+                     username=self.username,
+                     password=self.password)
+
 
     def connackReceived(self, status):
         if status == 0:
