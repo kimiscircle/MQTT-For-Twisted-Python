@@ -566,9 +566,10 @@ class MQTTClient(MQTTProtocol):
                  willTopic=None, willMessage=None, willRetain=False,
                  username=None, password=None):
 
+        self.username = username
+        self.password = password
+
         if username and password:
-            self.username = username
-            self.password = password
             self.username_flag = 1
             self.password_flag = 1
         else:
