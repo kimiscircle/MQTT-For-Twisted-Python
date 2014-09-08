@@ -408,10 +408,10 @@ class MQTTProtocol(Protocol):
         self.transport.write(str(header))
         self.transport.write(str(varHeader))
 
-    def subscribe(self, topic, requestedQoS=0, messageId=None):
+    def subscribe(self, topics, messageId=None):
         """
-        Only supports QoS = 0 subscribes
-        Only supports one subscription per message
+        Subscribe to the given topics. Topics is expected to be a list
+        of (topic, qos) tuples.
         """
         header = bytearray()
         varHeader = bytearray()
@@ -425,8 +425,9 @@ class MQTTProtocol(Protocol):
         else:
             varHeader.extend(self._encodeValue(messageId))
 
-        payload.extend(self._encodeString(topic))
-        payload.append(requestedQoS)
+        for topic, qos in topics:
+            payload.extend(self._encodeString(topic))
+            payload.append(qos)
 
         header.extend(self._encodeLength(len(varHeader) + len(payload)))
 
