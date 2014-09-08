@@ -451,7 +451,10 @@ class MQTTProtocol(Protocol):
         self.transport.write(str(varHeader))
         self.transport.write(str(payload))
 
-    def unsubscribe(self, topic, messageId=None):
+    def unsubscribe(self, topics, messageId=None):
+        """
+        Unsubscribe from a list of topics.
+        """
         header = bytearray()
         varHeader = bytearray()
         payload = bytearray()
@@ -459,11 +462,12 @@ class MQTTProtocol(Protocol):
         header.append(0x0A << 4 | 0x01 << 1)
 
         if messageId is not None:
-            varHeader.extend(self._encodeValue(self.messageID))
+            varHeader.extend(self._encodeValue(messageId))
         else:
             varHeader.extend(self._encodeValue(random.randint(1, 0xFFFF)))
 
-        payload.extend(self._encodeString(topic))
+        for topic in topics:
+            payload.extend(self._encodeString(topic))
 
         header.extend(self._encodeLength(len(payload) + len(varHeader)))
 
