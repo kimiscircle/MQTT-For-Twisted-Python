@@ -453,8 +453,11 @@ class MQTTProtocol(Protocol):
 
     def unsubscribe(self, topics, messageId=None):
         """
-        Unsubscribe from a list of topics.
+        Unsubscribe from one or more named topics.
         """
+        if isinstance(topics, basestring):
+            topics = [topics]
+
         header = bytearray()
         varHeader = bytearray()
         payload = bytearray()
